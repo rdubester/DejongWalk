@@ -11,7 +11,7 @@ void draw() {
   switch (mode) {
     // endless loop
   case PLAY:
-    t += 0.01;
+    t += 0.005;
     draw_(t % 1);
     break;
     // mouse controls current frame
@@ -64,47 +64,29 @@ void draw() {
 //////////////////////////////////////////////////////////////////////
 
 int samplesPerFrame = 1;
-int numFrames = 500;
+int numFrames = 300;
 int windup = 0;
 float shutterAngle = 1.0001;
 
-//Mode mode = Mode.PLAY;
+Mode mode = Mode.PLAY;
 //Mode mode = Msode.INSPECT;
-Mode mode = Mode.RECORD;
+//Mode mode = Mode.RECORD;
 
 //////////////////////////////////////////////////////////////////////
 
-int numPoints = 10000;
-int iterations = 5;
-int steps = 10;
+int numPoints = 40000;
+int iterations = 10;
+int steps = 40;
 int iter = 0;
 
 PVector[] points;
-
-void drawDejong(float a, float b, float c, float d) {
-  for (int iter = 0; iter < iterations; iter++) {
-    //println(iter);
-    randomPoints(points);
-    for (int step = 0; step < steps; step++) {
-      //println(" " + step);
-      for (int i = 0; i < numPoints; i++) {
-        PVector p = points[i];
-        float x = map(p.x, -2, 2, 0, width);
-        float y = map(p.y, -2, 2, 0, height);
-
-        stroke(255, 8);
-        point(x, y);
-
-        points[i] = dejongIFS(p, a, b, c, d);
-      }
-    }
-  }
-}
+int[] count;
 
 void setup() {
 
   size(600, 600, P2D);
   result = new int[width*height][3];
+  count = new int[width*height];
   blendMode(ADD);
   background(0);
 
@@ -112,20 +94,59 @@ void setup() {
 }
 
 void draw_(float t) {
+  
+  float tt = t;
 
-  background(0);
-  float a = 2*sin(t * TAU);
-  float b = 2*cos(t * TAU);
-  float c = 2*sin(-t * TAU);
-  float d = 2*cos(-t * TAU);
-  drawDejong(a, b, c, d);
+  //background(0);
+  count = new int[width*height];
+  //float a = 2.6794055837885518;
+  //float b = 2.45212306296863;
+  //float c = -1.7515416509942803;
+  //float d = 0.5026476820226775;
+  float a = -2;
+  float b = -2;
+  float c = -1.2;
+  float d = 2;
+  
+  a += 0.2*sin(tt * TAU);
+  b += 0.2*cos(tt * TAU);
+  c += 0.2*sin((tt-0.2) * TAU);
+  d += 0.2*cos(tt * TAU);
+
+
+  drawDejong(a, b, c, d, count, height, width);
+  setPixels();
 }
 
-PVector dejongIFS(PVector p, float a, float b, float c, float d) {
-  float x = sin(a * p.x) - cos(b * p.y);
-  float y = sin(c * p.x) - cos(d * p.y);
-  return new PVector(x, y);
+
+color[] colors = {color(100,100,255), color(255,100,100)};
+void setPixels() {
+  println(frameCount);
+  loadPixels();
+  float maxVal = 0;
+  float avgVal = 0;
+  for (int i : count) {
+    if (i > maxVal) {
+      maxVal = i;
+      avgVal += i;
+    }
+  }
+  avgVal /= count.length;
+  println(maxVal, avgVal);
+  
+  for (int i = 0; i < pixels.length; i++) {
+    float p = constrain(count[i]/maxVal, 0, 0.99);
+    float p_o = pow(p,0.25);
+    float p_c = pow(p,0.4);
+    //println(p, pp);
+    color c = lerpColors(colors, p_c);
+    color cc = lerpColor(color(0), c, p_o);
+    pixels[i] = cc;
+  }
+  updatePixels();
 }
+
+
 
 void randomPoints(PVector[] points) {
   for (int i = 0; i < numPoints; i++) {
@@ -137,3 +158,9 @@ void randomPoints(PVector[] points) {
 
 //cool systems!
 //1.97, -1.6, -1.6, -1.2
+
+  //int[] hist = new int[20];
+  //for(int i : count) {
+  //  hist[(int) (i * 19 / maxVal)]++;
+  //}
+  //println(hist);
